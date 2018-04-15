@@ -22,7 +22,7 @@ def peers_with_a_rfc(rfcnumber):
     '''Returns a list of peers having a particular RFC'''
     global rfc_info
     if rfcnumber in rfc_info: # if this RFC exists
-        message = version + " 200 " + status.get('200') + "\r\n\r\n" # for successful request
+        message = version + " 200 " + status['200'] + "\r\n\r\n" # for successful request
         peerlist = rfc_peer_map.get(rfcnumber) # get list of peers having the RFC
         tempmsg =''
         rfcdata = "RFC " + rfcnumber + " " + rfc_info.get(rfcnumber) + " "
@@ -30,7 +30,7 @@ def peers_with_a_rfc(rfcnumber):
             tempmsg += rfcdata + peer + "\r\n"
         message += tempmsg
     else: # if RFC is not found
-        message = version + " 404 " + status.get('404') + "\r\n"
+        message = version + " 404 " + status['404'] + "\r\n"
     return message
 
 
@@ -43,8 +43,7 @@ def add_peer_to_rfc(rfcnumber, rfctitle, hostname):
     else:
         peer_list=rfc_peer_map.get(rfcnumber) # get list of peers having the RFC
         peer_list.append(hostname) # add new peer to the peer_list
-    print("Added RFC successfully")
-    message = version + " 200 " + status.get('200') + "\r\n" + "RFC " + rfcnumber + " " + rfctitle + " " + hostname + " " + active_peers.get(hostname) + "\r\n" # for successful request
+    message = version + " 200 " + status['200'] + "\r\n" + "RFC " + rfcnumber + " " + rfctitle + " " + hostname +  "\r\n" # for successful request
     return message
 
 def register_new_peer(hostname, port):
@@ -59,7 +58,7 @@ def display_rfc_and_peers(hostname):
     global rfc_peer_map, rfc_info
     rfclist = rfc_peer_map.keys() # get list of RFCs
     if rfclist:
-        message = version + " 200 " + status.get('200') + "\r\n\r\n" # success message
+        message = version + " 200 " + status['200'] + "\r\n\r\n" # success message
        # print("RFC LIST : ",rfclist)
 
         for rfc in rfclist: # for each RFC
@@ -70,28 +69,35 @@ def display_rfc_and_peers(hostname):
                 peermsg += rfcmsg + " " + peer + "\r\n"
             message += peermsg
     else: # if no RFC found
-        message = version + " 404 " + status.get('404') + "\r\n"
+        message = version + " 404 " + status['404'] + "\r\n"
     return message
 
 def p2p_server(conn, addr):
     '''Validates the client request, performs necessary action and returns the response'''
     request = conn.recv(1024).decode()
-    print("received request ",request.strip())
     portnumber = request.strip()
     hostname = addr[0]+" "+portnumber
     register_new_peer(hostname, portnumber)
 
+    print('---------New Connection established  ------------------------------------')
+    print(hostname)
+    print('-----------------------------------------------------------------')
+
     while True:
         newrequest = conn.recv(1024).decode()
-        print("received request ",newrequest)
+        print('---------Received Request ------------------------------------')
+        print(newrequest)
+        print('-----------------------------------------------------------------')
         hostversion = newrequest.split('\r\n')[0].split(' ')[-1:]
         hostversion = hostversion[0]
+
         if version != hostversion: # if version mismatch
-            message = "505 " + status.get('505') + "\r\n"
+            message = "505 " + status['505'] + "\r\n"
+
+        if newrequest == "Exit":
+            break
 
         elif "Host: " in newrequest.split('\r\n')[1] and "Port: " in newrequest.split('\r\n')[2]: # check for correct request format
-            if newrequest.split('\r\n')[0].split(' ')[0] == "EXIT":
-                break
 
             if newrequest.split('\r\n')[0].split(' ')[0] == "ADD" and newrequest.split('\r\n')[0].split(' ')[1] == "RFC" and "Title: " in newrequest.split('\r\n')[3]:
                 rfcnumber = newrequest.split('\r\n')[0].split(' ')[2]
@@ -106,9 +112,13 @@ def p2p_server(conn, addr):
             elif newrequest.split('\r\n')[0].split(version)[0] == "LIST ALL ":
                 message = display_rfc_and_peers(hostname)
             else:
-                message = " 400 " + status.get('400') + "\r\n" # bad request format
+                message = " 400 " + status['400'] + "\r\n" # bad request format
         else:
-            message = " 400 " + status.get('400') + "\r\n" # bad request format
+            message = " 400 " + status['400'] + "\r\n" # bad request format
+
+        print('---------Server response ------------------------------------')
+        print(message)
+        print('-----------------------------------------------------------------')
 
         conn.send(str(message).encode()) # tranfer the response to client
 
@@ -137,10 +147,9 @@ def p2p_server(conn, addr):
 
 if __name__ == '__main__':
     '''This makes the server to run and handle each request from client asynchronously'''
-    print("Server Listening at Port :",server_port)
+    print("Server Listening at Port :",server_port,"\r\n")
     while True: # keeps running to handle new clients
         conn, addr = server_socket.accept() # accept the client connection
-        print("New connection: ", addr)
         Thread(target=p2p_server, args=(conn, addr)).start() # spawn a new thread for each client
 
     server_socket.close()

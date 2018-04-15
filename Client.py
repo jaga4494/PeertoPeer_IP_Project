@@ -10,6 +10,7 @@ from threading import Thread
 
 P2P_VERSION = "P2P-CI/1.0"
 RFC_FILES_FOLDER = os.getcwd() + "/RFCFiles/rfc"
+RFC_DOWNLOADS_FOLDER = os.getcwd() + "/Downloads/rfc"
 SERVER_PORT_NUM = 7734 # the server_port and the address are according to the requirements
 SERVER_HOST_NAME = 'localhost' # change the below to other IP if the server is running in any other system. Here we will be running both the client and the server in the same system.
 
@@ -49,9 +50,11 @@ def upload_rfc_from_peer():
                             "OS: " + platform.platform() +"\r\n" +\
                             "Last-Modified: " + str(time.ctime(os.path.getmtime(rfc_file_location))) +"\r\n" +\
                             "Content-Length: " + str(len(payload)) +"\r\n" +\
-                            "Content-Type: text/text\r\n" + \
-                            payload)
-                print("responding with ",response)
+                            "Content-Type: text/text\r\n" )
+                print('---------Upload RFC response ------------------------------------')
+                print(response)
+                print('-----------------------------------------------------------------')
+                response += payload
                 incoming_socket.sendall(response.encode())
         else:
             incoming_socket.sendall(str("400 Bad Request\r\n").encode())
@@ -60,21 +63,34 @@ def upload_rfc_from_peer():
 def send_get_request_to_peer(peer_host_name, peer_port_num, rfc_num, rfc_title, get_request):
     '''This method is used for making requests to any peer after getting the information from the server regarding the peer'''
 
+    print(" --- Client Request ----------------------------------------------------------")
+    print(get_request)
+    print(" -----------------------------------------------------------------------------")
+
     download_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     download_socket.connect((peer_host_name,int(peer_port_num)))
     download_socket.sendall(str(get_request).encode())
     data = download_socket.recv(1024).decode()
     response = data.split("\r\n")
+    print(" --- Peer Response ----------------------------------------------------------")
+    print("\r\n".join(response[0:5]))
+    print("data ... data ... data ...")
+    print(" -----------------------------------------------------------------------------")
+
+
 
     if P2P_VERSION+ ' 200 OK' in response[0]:
         content_length = response[4]
         content_length = int(content_length[16:])
-        data = download_socket.recv(content_length).decode()
-        data = data[data.find('text/text\r\n')+12:]
-        rfc_file_location = os.getcwd() + "/Downloads/" + rfc_num + ".txt"
+        if content_length > 1024:
+            data += download_socket.recv(content_length+1024).decode() # gets the whole package
+        data = data[data.find('text/text\r\n')+11:]
+        rfc_file_location = RFC_DOWNLOADS_FOLDER + rfc_num + ".txt"
         with open(rfc_file_location,'w') as file:
             file.write(data)
+            print('-----------------------------------------------------------------------')
             print('File ',rfc_num+'.txt is downloaded' )
+            print('-----------------------------------------------------------------------')
     else:
         print(response[0])
     download_socket.close()
@@ -93,16 +109,16 @@ def user_choices(choice,P2Ssocket):
     # Choices 1,2,3 are made from the Client to the server
     if choice == 1:
         print("This choice is used for registering the RFC of the client in the server")
-        user_input = input("enter the input in the following format ADD <RFC_NUM> <RFC_TITLE> " )
+        user_input = input("enter the input in the following format\r\n'ADD <RFC_NUM> <RFC_TITLE>' \r\n" )
     elif choice == 2:
         print("This choice is used for getting all the peers that serves the Given RFC  ")
-        user_input = input("enter the input in the following format LOOKUP <RFC_NUM> <RFC_TITLE> ")
+        user_input = input("enter the input in the following format\r\n'LOOKUP <RFC_NUM> <RFC_TITLE>'  \r\n")
     elif choice == 3:
         user_input = "LOOK ALL"
     # Choice 4
     elif choice == 4:
         print("This choice is used for getting an RFC from a Peer after connecting ")
-        user_input = input("enter the input in the following format GET <RFC_NUM> <RFC_TITLE>  ")
+        user_input = input("enter the input in the following format\r\n'GET <RFC_NUM> <RFC_TITLE>'   \r\n")
     # Default case
     else:
         user_input = 'Exit'
@@ -118,11 +134,8 @@ def make_requests(P2Ssocket, input, choice):
     if choice > 4:
         if(input == 'Exit'):
             P2Ssocket.sendall(str(input).encode())
-            response = P2Ssocket.recv(1024).decode()
-            print(" --- Server Responded with ---------------------------------------------------")
-            print(response)
-            print(" -----------------------------------------------------------------------------")
-        return False
+            print("Terminating Connection")
+            return False
 
     # for adding a New RFC to server
     if choice == 1:
@@ -141,7 +154,9 @@ def make_requests(P2Ssocket, input, choice):
         else:
             # file exists and we begin the add process
             request = add_rfc_method(rfc_num,rfc_title)
-            print("Sending print request to Server")
+            print(" --- Client Request ----------------------------------------------------------")
+            print(request)
+            print(" -----------------------------------------------------------------------------")
             P2Ssocket.sendall(str(request).encode())
             response = P2Ssocket.recv(1024).decode()
             print(" --- Server Responded with ---------------------------------------------------")
@@ -153,6 +168,9 @@ def make_requests(P2Ssocket, input, choice):
     #for listing all RFCs from server
     elif choice == 3:
         request = list_all_method()
+        print(" --- Client Request ----------------------------------------------------------")
+        print(request)
+        print(" -----------------------------------------------------------------------------")
         P2Ssocket.sendall(str(request).encode())
         response = P2Ssocket.recv(1024).decode()
         print(" --- Server Responded with ---------------------------------------------------")
@@ -170,6 +188,9 @@ def make_requests(P2Ssocket, input, choice):
         rfc_title = input_values[2]
 
         request = lookup_rfc_method(rfc_num, rfc_title)
+        print(" --- Client Request ----------------------------------------------------------")
+        print(request)
+        print(" -----------------------------------------------------------------------------")
         P2Ssocket.sendall(str(request).encode())
         response = P2Ssocket.recv(1024).decode()
         print(" --- Server Responded with ---------------------------------------------------")
@@ -257,7 +278,9 @@ def user_interface(P2Ssocket):
     while True:
         choice = input(option_list)
         if not user_choices(choice,P2Ssocket):
+            print("Terminatated. However this peer will continue to server incoming RFC requests")
             break
+
 
 
 
@@ -266,5 +289,7 @@ if __name__ == '__main__':
     P2Ssocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     P2Ssocket.connect(('', SERVER_PORT_NUM))
     P2Ssocket.sendall(str(client_port_number).encode()) # letting the server know the portnumber the client is going to use
-    Thread(target=upload_rfc_from_peer).start()
+    t=Thread(target=upload_rfc_from_peer)
+    t.start()
+
     user_interface(P2Ssocket)
