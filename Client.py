@@ -15,7 +15,7 @@ SERVER_PORT_NUM = 7734 # the server_port and the address are according to the re
 SERVER_HOST_NAME = 'localhost' # change the below to other IP if the server is running in any other system. Here we will be running both the client and the server in the same system.
 
 
-client_port_number = int(sys.argv[1])
+
 #client_port_number = 60000
 
 def upload_rfc_from_peer():
@@ -31,7 +31,7 @@ def upload_rfc_from_peer():
     '''
 
     upload_server_socket = socket.socket()
-    upload_server_socket.bind(('localhost',client_port_number))
+    upload_server_socket.bind(('localhost', CLIENT_PORT_NUMBER))
     upload_server_socket.listen(10)
     while True:
         incoming_socket,incoming_addr = upload_server_socket.accept()
@@ -238,7 +238,7 @@ def add_rfc_method(rfc_number,rfc_title):
         ADD RFC 2345 P2P-CI/1.0 '''
     return "ADD RFC " + str(rfc_number) +" " + P2P_VERSION + "\r\n" + \
             "Host: " + str(socket.gethostname()) +"\r\n" + \
-            "Port: " + str(client_port_number) +"\r\n" +\
+            "Port: " + str(CLIENT_PORT_NUMBER) + "\r\n" +\
             "Title: " + str(rfc_title) +"\r\n"
 
 def lookup_rfc_method(rfc_number,rfc_title):
@@ -249,7 +249,7 @@ def lookup_rfc_method(rfc_number,rfc_title):
         Title: Requirements for IPsec Remote Access Scenarios '''
     return "LOOKUP RFC " + str(rfc_number) +" " + str(P2P_VERSION) + "\r\n" + \
             "Host: " + str(socket.gethostname()) +"\r\n" + \
-            "Port: " + str(client_port_number) +"\r\n" + \
+            "Port: " + str(CLIENT_PORT_NUMBER) + "\r\n" + \
             "Title: " + str(rfc_title) +"\r\n"
 
 def list_all_method():
@@ -257,9 +257,9 @@ def list_all_method():
         LIST ALL P2P-CI/1.0
         Host: thishost.csc.ncsu.edu
         Port: 5678 '''
-    return "LIST ALL " +str(P2P_VERSION) + "\r\n" + \
+    return "LIST ALL " + str(P2P_VERSION) + "\r\n" + \
             "Host: " + str(socket.gethostname()) +"\r\n" + \
-            "Port: " + str(client_port_number) +"\r\n"
+            "Port: " + str(CLIENT_PORT_NUMBER) + "\r\n"
 
 
 
@@ -286,10 +286,16 @@ def user_interface(P2Ssocket):
 
 if __name__ == '__main__':
     '''This is the starter main method that connects to the server and passes the server socket to the required methods'''
+    if len(sys.argv) < 3:
+        raise  RuntimeError('Please run the client with two arguments client_port_number and server_host_ip')
+
+    CLIENT_PORT_NUMBER = int(sys.argv[1])
+    SERVER_HOST_NAME = sys.argv[2]
     P2Ssocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     P2Ssocket.connect(('', SERVER_PORT_NUM))
-    P2Ssocket.sendall(str(client_port_number).encode()) # letting the server know the portnumber the client is going to use
+    P2Ssocket.sendall(str(CLIENT_PORT_NUMBER).encode()) # letting the server know the portnumber the client is going to use
     t=Thread(target=upload_rfc_from_peer)
     t.start()
+
 
     user_interface(P2Ssocket)
