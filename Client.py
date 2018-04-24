@@ -12,7 +12,7 @@ P2P_VERSION = "P2P-CI/1.0"
 RFC_FILES_FOLDER = os.getcwd() + "/RFCFiles/rfc"
 RFC_DOWNLOADS_FOLDER = os.getcwd() + "/Downloads/rfc"
 SERVER_PORT_NUM = 7734 # the server_port and the address are according to the requirements
-SERVER_HOST_NAME = 'localhost' # change the below to other IP if the server is running in any other system. Here we will be running both the client and the server in the same system.
+SERVER_HOST_NAME = '' # change the below to other IP if the server is running in any other system. Here we will be running both the client and the server in the same system.
 
 
 
@@ -60,6 +60,13 @@ def upload_rfc_from_peer():
             incoming_socket.sendall(str("400 Bad Request\r\n").encode())
 
 
+def find_alias_peer(hostname):
+    alias_ip = [l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(('8.8.8.8', 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0]
+    if hostname == alias_ip:
+        return 'localhost'
+    return hostname
+
+
 def send_get_request_to_peer(peer_host_name, peer_port_num, rfc_num, rfc_title, get_request):
     '''This method is used for making requests to any peer after getting the information from the server regarding the peer'''
 
@@ -68,6 +75,7 @@ def send_get_request_to_peer(peer_host_name, peer_port_num, rfc_num, rfc_title, 
     print(" -----------------------------------------------------------------------------")
 
     download_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    peer_host_name = find_alias_peer(peer_host_name)
     download_socket.connect((peer_host_name,int(peer_port_num)))
     download_socket.sendall(str(get_request).encode())
     data = download_socket.recv(1024).decode()
@@ -292,7 +300,9 @@ if __name__ == '__main__':
     CLIENT_PORT_NUMBER = int(sys.argv[1])
     SERVER_HOST_NAME = sys.argv[2]
     P2Ssocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    P2Ssocket.connect(('', SERVER_PORT_NUM))
+   # P2Ssocket.bind(('', CLIENT_PORT_NUMBER))
+    print("client addr ", P2Ssocket.getsockname())
+    P2Ssocket.connect((SERVER_HOST_NAME,  SERVER_PORT_NUM))
     P2Ssocket.sendall(str(CLIENT_PORT_NUMBER).encode()) # letting the server know the portnumber the client is going to use
     t=Thread(target=upload_rfc_from_peer)
     t.start()

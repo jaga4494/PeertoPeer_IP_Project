@@ -15,7 +15,8 @@ version = "P2P-CI/1.0"
 server_port = 7734 # predefined well known port
 server_name = socket.gethostname()
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind(('', server_port))
+server_socket.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR, 1)
+server_socket.bind(('0.0.0.0', server_port))
 server_socket.listen(1)
 
 def peers_with_a_rfc(rfcnumber):
