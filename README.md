@@ -66,7 +66,7 @@ This looks up the peers containing rfc1000.txt's
 
 There is no prompt for this one
 
-4)
+4) GET
 
 the prompt message shows up as
 
