@@ -2,8 +2,13 @@
 
 This is a PEER to PEER socket application with a Centralised Indexing System
 
-In order to use this application please follow the following steps
+## Environment for execution:
 
+**use python 3**
+
+**We tested the program on : python 'v3.6.3'**
+
+In order to use this application please follow the following steps
 
 First Start the Server in any system of choice
 
