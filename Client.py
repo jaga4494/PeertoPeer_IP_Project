@@ -33,7 +33,7 @@ def upload_rfc_from_peer():
     upload_server_socket = socket.socket()
     upload_server_socket.bind(('localhost', CLIENT_PORT_NUMBER))
     upload_server_socket.listen(10)
-    while True:
+    while True and thread_not_exit_flag:
         incoming_socket,incoming_addr = upload_server_socket.accept()
         data = str(incoming_socket.recv(1024).decode()).strip()
         print("rcvd data ",data)
@@ -54,6 +54,7 @@ def upload_rfc_from_peer():
                 print('---------Upload RFC response ------------------------------------')
                 print(response)
                 print('-----------------------------------------------------------------')
+                print('Press Enter to Continue')
                 response += payload
                 incoming_socket.sendall(response.encode())
         else:
@@ -98,7 +99,7 @@ def send_get_request_to_peer(peer_host_name, peer_port_num, rfc_num, rfc_title, 
             file.write(data)
             print('-----------------------------------------------------------------------')
             print('File ',rfc_num+'.txt is downloaded' )
-            print('-----------------------------------------------------------------------')
+            print("press Enter to continue")
     else:
         print(response[0])
     download_socket.close()
@@ -142,8 +143,11 @@ def make_requests(P2Ssocket, input, choice):
     if choice > 4:
         if(input == 'Exit'):
             P2Ssocket.sendall(str(input).encode())
+            global thread_not_exit_flag
+            thread_not_exit_flag = False
             print("Terminating Connection")
-            return False
+            sys.exit()
+
 
     # for adding a New RFC to server
     if choice == 1:
@@ -286,8 +290,10 @@ def user_interface(P2Ssocket):
     while True:
         choice = input(option_list)
         if not user_choices(choice,P2Ssocket):
-            print("Terminatated. However this peer will continue to server incoming RFC requests")
-            break
+            global thread_not_exit_flag
+            thread_not_exit_flag = False
+            sys.exit()
+
 
 
 
@@ -300,11 +306,12 @@ if __name__ == '__main__':
     CLIENT_PORT_NUMBER = int(sys.argv[1])
     SERVER_HOST_NAME = sys.argv[2]
     P2Ssocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    thread_not_exit_flag = True
    # P2Ssocket.bind(('', CLIENT_PORT_NUMBER))
-    print("client addr ", P2Ssocket.getsockname())
     P2Ssocket.connect((SERVER_HOST_NAME,  SERVER_PORT_NUM))
     P2Ssocket.sendall(str(CLIENT_PORT_NUMBER).encode()) # letting the server know the portnumber the client is going to use
     t=Thread(target=upload_rfc_from_peer)
+    t.setDaemon(True)
     t.start()
 
 

@@ -39,8 +39,8 @@ def add_peer_to_rfc(rfcnumber, rfctitle, hostname):
     '''Adding a new RFC if not exists and adding peer to a particular RFC'''
     global rfc_peer_map,rfc_info
     if rfcnumber not in rfc_info: # if RFC is not present in list
-	    rfc_info[rfcnumber]=rfctitle # store the RFC title
-	    rfc_peer_map[rfcnumber]=[hostname] # generate the new entry with RFC number as key with hostname as value
+        rfc_info[rfcnumber] = rfctitle # store the RFC title
+        rfc_peer_map[rfcnumber] = [hostname] # generate the new entry with RFC number as key with hostname as value
     else:
         peer_list=rfc_peer_map.get(rfcnumber) # get list of peers having the RFC
         peer_list.append(hostname) # add new peer to the peer_list
@@ -123,19 +123,32 @@ def p2p_server(conn, addr):
 
         conn.send(str(message).encode()) # tranfer the response to client
 
+    print('--------Removing connection ------------------------------------')
+    print(hostname)
+    print('-----------------------------------------------------------------')
 
+
+    to_be_removed = []
     # Remove the client when it closes connection
-    for rfc in rfc_peer_map.keys(): # for each RFC in available RFC list
+    for rfc in rfc_peer_map: # for each RFC in available RFC list
         peerlist=rfc_peer_map.get(rfc) # peer list of each RFC
-        if hostname in peerlist: # if hostname is present
-            if len(peerlist) > 1: # if other hosts are there apart from the client which closes connection
-                peerlist.pop(hostname) # remove the client from list
-                #global rfc_peer_map
-                rfc_peer_map[rfc]=peerlist # uodate the dictionary for the RFC
-            else: # if this is only client hving this RFC
-                #global rfc_peer_map, rfc_info
-                rfc_peer_map.pop(rfc, None) # remove the RFC entry from RFC client dictionary
-                rfc_info.pop(rfc) # remove RFC entry from list of known RFCs
+        if hostname in peerlist:# if hostname is present
+            peerlist.remove(hostname)
+            if len(peerlist) == 0:
+                to_be_removed.append(rfc)
+
+    for val in to_be_removed:
+        rfc_peer_map.pop(val, None)
+
+        # if hostname in peerlist: # if hostname is present
+        #     if len(peerlist) > 1: # if other hosts are there apart from the client which closes connection
+        #         peerlist.pop(hostname) # remove the client from list
+        #         #global rfc_peer_map
+        #         rfc_peer_map[rfc]=peerlist # uodate the dictionary for the RFC
+        #     else: # if this is only client hving this RFC
+        #         #global rfc_peer_map, rfc_info
+        #         rfc_peer_map.pop(rfc, None) # remove the RFC entry from RFC client dictionary
+        #         rfc_info.pop(rfc) # remove RFC entry from list of known RFCs
 
 
 
